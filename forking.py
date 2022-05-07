@@ -1,19 +1,50 @@
-import os
+import os, sys, time
+
+r,w=os.pipe()
+r,w=os.fdopen(r,'r'), os.fdopen(w,'w')
+
+pid = os.fork()
+if pid:          # Parent
+    w.close()
+    data=r.readline()
+    print("parent read: " + data.strip())
+    print('servidor')
+else:           # Child
+    r.close()
+    while True:
+        n = int(input('Informe o número de requisições que o servidor suporta\n'))
+        w.write(str(n)+'\n')
+        w.flush()
+        time.sleep(1)
+
+
+"""import os
 import time
-
-
-def child():
-    time.sleep(5)
-    print('We are in the child process with PID= %d' % os.getpid())
-
-def parent():
-    print('We are in the parent process with PID= %d' % os.getpid())
-    newRef = os.fork()
-    if newRef == 0:
-        child()
+  
+def communication(child_writes):
+    # file descriptors r, w for reading and writing
+    r, w = os.pipe()
+      
+    #Creating child process using fork
+    processid = os.fork()
+    if processid:
+        # This is the parent process
+        # Closes file descriptor w
+        os.close(w)
+        r = os.fdopen(r)
+        print ("Parent reading")
+        str = r.read()
+        print( "Parent reads =", str)
     else:
-        time.sleep(5)
-        print('We are in the parent process and our child process has PID = %d' % newRef)
-
-if __name__ == '__main__':
-    parent()
+        # This is the child process
+        time.sleep(4)
+        os.close(r)
+        w = os.fdopen(w, 'w')
+        print ("Child writing")
+        w.write(child_writes+'gafs')
+        print("Child writes = ",child_writes)
+        w.close()
+          
+# Driver code        
+child_writes = "Hello geeks"
+communication(child_writes)"""

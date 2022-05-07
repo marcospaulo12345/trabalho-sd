@@ -18,6 +18,7 @@ q = queue.Queue()
 CapServerActive = 0
 list_servers_block = []
 
+
 def prodMatrix(matrizA, matrizB):
     """Multiplica duas matrizes."""
     sizeLA = len(matrizA)
@@ -43,8 +44,6 @@ def run(data, addr, n, semaphore):
 
     global servers
     global CapServerActive
-
-    running = True
 
     if count <= n:
         print('n:', n, 'count:', count)
@@ -74,9 +73,8 @@ def run(data, addr, n, semaphore):
         print(UDP_IP_ADDRESS)
         print('cap',CapServerActive)
         if (CapServerActive <= 0):
-            item = q.get()
+            item = q.get(block=True)
             print('aaaa')
-            q.task_done()
             if q.qsize() > 0:
                 CapServerActive = list(q.queue)[0][2]
                 UDP_IP_ADDRESS = list(q.queue)[0][1]
@@ -86,17 +84,19 @@ def run(data, addr, n, semaphore):
 
                 if item:
                     list_servers_block.append(item)
-
+                td = 0
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((UDP_IP_ADDRESS, UDP_PORT_NO))
                     s.sendall(data)
                     data_send = pickle.loads(data)
-
+                    print("lennnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",len(data_send))
                     tm = len(data_send[0]) ** len(data_send)
                     t1 = time.time()
                     data_r = s.recv(65536)
                     tp = time.time() - t1
                     td = tm / tp
+                    print('tp: ', tp, 'tm', tm)
+                    print('desempenho ', td)
 
                     result = pickle.loads(data_r)
                     print('Recebido do servidor parceiro:', result)
@@ -108,13 +108,25 @@ def run(data, addr, n, semaphore):
                     l = list(q.queue)
                     if i not in l:
                         q.put(i)
-                lista_not_order = sorted(list(q.queue), key = lambda x: x[2], reverse=True)
+
+                copia_fila = list(q.queue).copy()
+                with q.mutex:
+                    q.queue.clear()
+                for i in range(len(copia_fila)):
+                    if copia_fila[i][1] == UDP_IP_ADDRESS:
+                        copia_fila[i][3] = td
+                for i in copia_fila:
+                    q.put(i)
+
+                lista_not_order = sorted(list(q.queue), key = lambda x: x[3], reverse=True)
                 with q.mutex:
                     q.queue.clear()
                 for i in lista_not_order:
                     q.put(i)
+                pd.DataFrame(list(q.queue), columns=["Nome", "IP", "capacidade", "desempenho"]).to_csv('serverPc.csv', index=False)
                 CapServerActive = list(q.queue)[0][2]
                 
+            q.task_done()
             print(list(q.queue))
             running = False
         else:
@@ -125,18 +137,30 @@ def run(data, addr, n, semaphore):
                 s.connect((UDP_IP_ADDRESS, UDP_PORT_NO))
                 s.sendall(data)
                 data_send = pickle.loads(data)
-
+                print("lennnnnnnnnnnnnnnnnnn", len(data_send))
                 tm = len(data_send[0]) ** len(data_send)
                 t1 = time.time()
                 data_r = s.recv(65536)
                 tp = time.time() - t1
                 td = tm / tp
+                print('tp: ', tp, 'tm', tm)
+                print('desempenho ', td)
 
                 result = pickle.loads(data_r)
                 print('Recebido do servidor parceiro:', result)
                 result = pickle.dumps(result)
                 print('send to',addr)
                 serverSock.sendto(result, addr)
+
+            copia_fila = list(q.queue).copy()
+            with q.mutex:
+                q.queue.clear()
+            for i in range(len(copia_fila)):
+                if copia_fila[i][1] == UDP_IP_ADDRESS:
+                    copia_fila[i][3] = td
+            for i in copia_fila:
+                q.put(i)
+
             lista_not_order = sorted(list(q.queue), key = lambda x: x[2], reverse=True)
             with q.mutex:
                 q.queue.clear()
@@ -152,7 +176,7 @@ def runServerUDP(n):
     global count
     count = 0   
     global servers
-    
+
     servers = [['parceiro1', '172.17.0.2', 1, 0],
                ['parceiro2', '172.17.0.3', 2, 0]]
 
@@ -160,16 +184,15 @@ def runServerUDP(n):
         q.put(i)
     
     global CapServerActive
-    CapServerActive = list(q.queue)[0][2]
     threads = []
     while True:
-        
-        print("rayner gay", servers)
+        #print("rayner gay", servers)
         data, addr = serverSock.recvfrom(65536)
         semaphore = threading.Semaphore()
         thread = threading.Thread(target=run, args=(data, addr, n, semaphore))
         thread.start() 
-        print(list(q.queue))
+        
+        #print(list(q.queue))
         threads.append(thread)
         
         print('Numero de thread: ' + str(threading.active_count()))

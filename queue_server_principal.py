@@ -108,6 +108,11 @@ def run(data, addr, n, semaphore):
                     l = list(q.queue)
                     if i not in l:
                         q.put(i)
+                lista_not_order = sorted(list(q.queue), key = lambda x: x[2], reverse=True)
+                with q.mutex:
+                    q.queue.clear()
+                for i in lista_not_order:
+                    q.put(i)
                 CapServerActive = list(q.queue)[0][2]
                 
             print(list(q.queue))
@@ -132,6 +137,11 @@ def run(data, addr, n, semaphore):
                 result = pickle.dumps(result)
                 print('send to',addr)
                 serverSock.sendto(result, addr)
+            lista_not_order = sorted(list(q.queue), key = lambda x: x[2], reverse=True)
+            with q.mutex:
+                q.queue.clear()
+            for i in lista_not_order:
+                q.put(i)
             CapServerActive = list(q.queue)[0][2]
         #else: 
         #    serverSock.sendto('Tente novamente mais tarde'.encode(), addr)

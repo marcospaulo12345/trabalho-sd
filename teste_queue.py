@@ -27,7 +27,19 @@ def worker(n):
                 print('lista bloque', listBloque)
                 print('servidor ', list(q.queue)[0][0])
                 time.sleep(5)
-                q.put(listBloque[0])
+                for i in listBloque:
+                    l = list(q.queue)
+                    if i not in l:
+                        q.put(i)
+                print("kjdh: ", list(q.queue))
+                
+                if q.qsize() > 0:
+                        lista_not_order = sorted(list(q.queue), key = lambda x: x[1], reverse=False)
+                print('sdhfhghgj')
+                with q.mutex:
+                    q.queue.clear()
+                for i in lista_not_order:
+                    q.put(i)
                 print(list(q.queue))
             print("count2",count)
         else:
@@ -52,7 +64,7 @@ count = list(q.queue)[0][1]
 print(list(q.queue))
 print(q.qsize())
 threads = []
-for i in range(5):
+for i in range(3):
     thread = threading.Thread(target=worker, args=(n,))
     threads.append(thread)
     thread.start()

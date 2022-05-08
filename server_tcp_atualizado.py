@@ -46,7 +46,7 @@ def run(conn):
 
 def runServer():
 
-    UDP_IP_ADDRESS = '172.17.0.2'
+    UDP_IP_ADDRESS = '172.17.0.3'
     UDP_PORT_NO = 6789
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -60,11 +60,12 @@ def runServer():
             thread.start()
 
 def runRegister():
-    TCP_IP_ADDRESS = '192.168.0.102'
+    TCP_IP_ADDRESS = '192.168.0.104'
+    #TCP_IP_ADDRESS = '10.0.0.110'
     TCP_PORT_NO = 7005
     global isRegister
 
-    arr = ['parceiro1', socket.gethostbyname(socket.gethostname()), 2, 0]
+    arr = ['parceiro2', socket.gethostbyname(socket.gethostname()), 2, 0]
 
     data_string = pickle.dumps(arr)
 
